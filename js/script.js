@@ -100,11 +100,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const statsContainer = document.getElementById('home-stats');
         statsContainer.innerHTML = ''; 
         
-        const totalAlunos = alunos.length;
-        const totalFerramentas = alunos.filter(a => a.ferramenta !== null).length;
+        const totalAlunos = tccs.length;
+        const totalFerramentas = ferramentas.length;
         // Mapeia anos, garantindo que inteiros e decimais (ex: 2026.1) sejam formatados como texto para min/max se precisar, 
         // mas Math.min e max lidam bem com números decimais. Usaremos o valor inteiro para extrair apenas o "Ano".
-        const anosInt = alunos.map(a => Math.floor(a.ano)); 
+        const anosInt = tccs.map(a => Math.floor(a.ano)); 
         const anoMin = Math.min(...anosInt);
         const anoMax = Math.max(...anosInt);
         const periodo = `${anoMin} – ${anoMax}`;
@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Popular o select de semestres dinamicamente
     function initSemesterFilter() {
         // Extrai anos/semestres únicos, converte para string e ordena de forma decrescente
-        const uniqueSemesters = [...new Set(alunos.map(a => a.ano))].sort((a, b) => b - a);
+        const uniqueSemesters = [...new Set(tccs.map(a => a.ano))].sort((a, b) => b - a);
         
         uniqueSemesters.forEach(semestre => {
             const option = document.createElement('option');
@@ -211,9 +211,10 @@ document.addEventListener('DOMContentLoaded', () => {
             linkTCC.textContent = 'Ver TCC';
             actions.appendChild(linkTCC);
             
-            if (aluno.ferramenta) {
+            const ferramentaAssociada = ferramentas.find(ferramenta => ferramenta.tccAssociado === aluno.id);
+            if (ferramentaAssociada) {
                 const linkFerramenta = document.createElement('a');
-                linkFerramenta.href = aluno.ferramenta.link;
+                linkFerramenta.href = ferramentaAssociada.link;
                 linkFerramenta.target = '_blank';
                 linkFerramenta.classList.add('btn', 'btn-accent', 'btn-sm');
                 linkFerramenta.textContent = 'Ver Ferramenta';
@@ -244,7 +245,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const termo = searchInput.value.toLowerCase();
         const semestreSelecionado = semesterFilter.value;
 
-        const filtrados = alunos.filter(a => {
+        const filtrados = tccs.filter(a => {
             const matchTexto = a.nome.toLowerCase().includes(termo) || a.tituloTCC.toLowerCase().includes(termo);
             const matchSemestre = semestreSelecionado === "" || a.ano.toString() === semestreSelecionado;
             
@@ -264,40 +265,53 @@ document.addEventListener('DOMContentLoaded', () => {
         const ferramentasGrid = document.getElementById('ferramentas-grid');
         ferramentasGrid.innerHTML = '';
 
-        const trabalhosComFerramenta = alunos.filter(a => a.ferramenta !== null);
-
-        trabalhosComFerramenta.forEach(aluno => {
+        ferramentas.forEach(ferramenta => {
             const card = document.createElement('div');
             card.classList.add('card', 'fade-up');
             
             const title = document.createElement('h3');
             title.classList.add('card-title');
-            title.textContent = aluno.ferramenta.nome;
+            title.textContent = ferramenta.nome;
             
             const meta = document.createElement('div');
             meta.classList.add('card-meta');
             const strongAutor = document.createElement('strong');
-            strongAutor.textContent = 'Autor(a): ';
+            strongAutor.textContent = 'Responsável: ';
             meta.appendChild(strongAutor);
-            meta.appendChild(document.createTextNode(`${aluno.nome} (${aluno.ano})`));
+            meta.appendChild(document.createTextNode(ferramenta.responsavel));
+
+            const referencia = document.createElement('div');
+            referencia.classList.add('card-meta');
+            const strongOrigem = document.createElement('strong');
+            strongOrigem.textContent = 'Origem: ';
+            referencia.appendChild(strongOrigem);
+            referencia.appendChild(document.createTextNode(ferramenta.origem));
+
+            const tccAssociado = tccs.find(tcc => tcc.id === ferramenta.tccAssociado);
+            const vinculo = document.createElement('div');
+            vinculo.classList.add('card-meta');
+            const strongVinculo = document.createElement('strong');
+            strongVinculo.textContent = 'Vínculo: ';
+            vinculo.appendChild(strongVinculo);
+            vinculo.appendChild(document.createTextNode(tccAssociado ? `TCC — ${tccAssociado.tituloTCC}` : 'Sem TCC associado'));
             
             const desc = document.createElement('p');
             desc.classList.add('card-desc');
-            desc.textContent = aluno.ferramenta.descricao;
+            desc.textContent = ferramenta.descricao;
             
             const actions = document.createElement('div');
             actions.classList.add('card-actions');
             
             const linkAcesso = document.createElement('a');
-            linkAcesso.href = aluno.ferramenta.link;
+            linkAcesso.href = ferramenta.link;
             linkAcesso.target = '_blank';
             linkAcesso.classList.add('btn', 'btn-primary', 'btn-sm', 'w-100');
             linkAcesso.textContent = 'Acessar Ferramenta';
             actions.appendChild(linkAcesso);
 
-            if (aluno.github) {
+            if (ferramenta.github) {
                 const linkGithub = document.createElement('a');
-                linkGithub.href = aluno.github;
+                linkGithub.href = ferramenta.github;
                 linkGithub.target = '_blank';
                 linkGithub.classList.add('btn', 'btn-outline', 'btn-sm', 'w-100');
                 linkGithub.textContent = 'Ver Repositório';
@@ -306,6 +320,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             card.appendChild(title);
             card.appendChild(meta);
+            card.appendChild(referencia);
+            card.appendChild(vinculo);
             card.appendChild(desc);
             card.appendChild(actions);
             
@@ -322,8 +338,8 @@ document.addEventListener('DOMContentLoaded', () => {
     initSemesterFilter(); // Inicializa o novo filtro
     
     // Ordena os TCCs do mais recente para o mais antigo por padrão
-    const alunosOrdenados = [...alunos].sort((a, b) => b.ano - a.ano);
-    renderTCCs(alunosOrdenados);
+    const tccsOrdenados = [...tccs].sort((a, b) => b.ano - a.ano);
+    renderTCCs(tccsOrdenados);
     
     renderFerramentas();
     
